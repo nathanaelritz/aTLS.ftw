@@ -1,0 +1,48 @@
+--------------------------------------------------------------
+Verification summary:
+
+Query not event(Accepted(ev)) is false.
+
+Query not event(Appraised(log)) is false.
+
+Query not event(ClientConn(ev)) is false.
+
+Query not event(ClientFinished(pubEK_4,psk_2,cr_2,sr_2,offer_2,mode_2,kc_4,ks_4,ems_4,rms_2)) is false.
+
+Query not event(ClientFinRecentAgr(ID_S_4,ID_C_3,pubEK_4,psk_2,offer_2,mode_2,kc_4,ks_4,ems_4,rms_2,cr_2,sr_2)) is false.
+
+Query not event(ServerFinished(cr_2,sr_2,psk_2,p,offer_2,mode_2,kc_4,ks_4,ems_4,rms_2)) is false.
+
+Query not (event(ServerID(idS,gxy_2)) && event(ClientID(idXS,gxy_2))) is false.
+
+Query not event(AcceptedRdata(rdata_2)) is false.
+
+Query event(ClientFinished(pubEK_4,psk_2,cr_2,sr_2,offer_2,mode_2,kc_4,ks_4,ems_4,rms_2)) && event(ServerFinished(cr_2,sr_2,psk_2,pubEK_4,offer_2,mode_2,kc_4,ks_4,ems_4,rms_2)) ==> event(ServerChoosesKEX(cr_2,sr_2,DHE_13(WeakDH,e))) || event(ServerChoosesHash(cr',sr',WeakHash)) || event(SentBadElement) || event(LeakedAK(pubAK_5)) || event(LeakedEK(pubEK_4)) is false.
+
+Query event(ClientComp(ID_S_4,pubEK_4,psk_2,offer_2,mode_2,kc_4,ks_4,ems_4,rms_2,cr_2,sr_2,pubEK_4,dev_state)) && event(ServerComp(ID_S_4,pubEK_4,psk_2,offer_2,mode_2,kc_4,ks_4,ems_4,cr_2,sr_2,pubEK_4,dev_state)) ==> event(ServerChoosesKEX(cr_2,sr_2,DHE_13(WeakDH,e))) || event(ServerChoosesHash(cr',sr',WeakHash)) || event(SentBadElement) || event(LeakedAK(pubAK_5)) || event(LeakedEK(pubEK_4)) is false.
+
+Query event(ClientStateEv(ev,gxy_2)) && event(ClientRA(pubAK_5,pubEK_4,dev_status1_2,ev)) ==> event(ServerEmittedEv(ev,gxy_2)) is false.
+
+Query event(ClientStateEv(ev,gxy_2)) && event(ClientRA(pubAK_5,pubEK_4,dev_status1_2,ev)) ==> event(ServerEmittedEv(ev,gxy_2)) || event(LeakedAK(pubAK_5)) || event(LeakedEK(pubEK_4)) || event(ServerChoosesKEX(cr_2,sr_2,DHE_13(WeakDH,e))) || event(ServerChoosesHash(cr',sr',WeakHash)) || event(SentBadElement) is true.
+
+Query event(ClientStateEvKch(ev,kch_4)) && event(ClientRA(pubAK_5,pubEK_4,dev_status1_2,ev)) ==> event(ServerEmittedEvKch(ev,kch_4)) is false.
+
+Query event(ClientStateEvKch(ev,kch_4)) && event(ClientRA(pubAK_5,pubEK_4,dev_status1_2,ev)) ==> event(ServerEmittedEvKch(ev,kch_4)) || event(LeakedAK(pubAK_5)) || event(LeakedEK(pubEK_4)) || event(ServerChoosesKEX(cr_2,sr_2,DHE_13(WeakDH,e))) || event(ServerChoosesHash(cr',sr',WeakHash)) || event(SentBadElement) is true.
+
+Query event(ClientStateEvKc(ev,kc_4)) && event(ClientRA(pubAK_5,pubEK_4,dev_status1_2,ev)) ==> event(ServerEmittedEvKc(ev,kc_4)) is false.
+
+Query event(ClientStateEvKc(ev,kc_4)) && event(ClientRA(pubAK_5,pubEK_4,dev_status1_2,ev)) ==> event(ServerEmittedEvKc(ev,kc_4)) || event(LeakedAK(pubAK_5)) || event(LeakedEK(pubEK_4)) || event(ServerChoosesKEX(cr_2,sr_2,DHE_13(WeakDH,e))) || event(ServerChoosesHash(cr',sr',WeakHash)) || event(SentBadElement) is true.
+
+Query not (event(ClientStateEv(ev,gxy_2)) && event(ServerStateEv(ev,gxy_2))) is false.
+
+Query not (event(ClientStateEvKch(ev,kch_4)) && event(ServerStateEvKch(ev,kch_4))) is false.
+
+Query not (event(ClientStateEvKc(ev,kc_4)) && event(ServerStateEvKc(ev,kc_4))) is false.
+
+Query event(ClientStateEv(ev,gxy1)) && event(ServerStateEv(ev,gxy2)) ==> gxy1 = gxy2 is true.
+
+Query event(ClientStateEvKch(ev,kch1)) && event(ServerStateEvKch(ev,kch2)) ==> kch1 = kch2 is true.
+
+Query event(ClientStateEvKc(ev,kc1)) && event(ServerStateEvKc(ev,kc2)) ==> kc1 = kc2 is true.
+
+--------------------------------------------------------------
