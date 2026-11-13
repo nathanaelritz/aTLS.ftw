@@ -37,58 +37,61 @@ The compromise of a server machine is modelled by leaking privAK or privEK.
 
 (* Generation of agents and keys *)
 (* All parameters for Server side *)
-(*    agent_keys(ID_S    ,privAK ,pubAK ,privEK ,pubEK ,dev_statusRef *)
-table agent_keys(identity,privkey,pubkey,privkey,pubkey,bitstring).
+(*    agent_keys(ID_S    ,privAK ,pubAK ,dev_statusRef *)
+table agent_keys(identity,privkey,pubkey,bitstring).
+table ca_store(privkey).
 
-(*    trust_store(ID_S    ,pubEK,x509_cert) *)
-table trust_store(identity,pubkey,cert_data).
-
-let gen_agents_data (privCA:privkey) =
+let gen_agents_data () =
   (* Imagine the following as generating the data of a single server machine (single agent)
   and the replication then produces multiple server machines (multi-agent) *)
   
-  (* Server side *)
-  (* Host Platform Scope (Physical Machine / Hardware RoT) *)
-  
-  (* Private keys in the protocol *)
+  (* Server Side - Host Platform Scope (Physical Machine / Hardware RoT) *)
   new privAK: privkey;  (* attestation key for signing evidence *)
-  
-  (* public keys should be available to attacker *)
   let pubAK = pk(privAK) in
-  out(io, pubAK);
+  out(io, pubAK); (* public keys should be available to attacker *)
   
-  (!( 
+  !( (* Tenant CVM Scope (Multiple Guest VMs per Host) *)
   (* This replication allows to model multiple VMs on the same physical machine
-    which is typical in cloud scenarios. *)
+     which is typical in cloud scenarios. *)
     
-  (* Tenant CVM Scope (Multiple Guest VMs per Host) *)
-  new ID_S: identity;   (* PKI identity of the tenant, e.g., service identity / FQDN *)
-  out(io,ID_S);  (* Identity is public *)
+     new ID_S: identity;   (* PKI service identity of the tenant, e.g., FQDN *)
+     out(io,ID_S);  (* Identity is public *)
 
-  new dev_statusRef: bitstring;  (* represents ref. cVM launch measurements *)
-  out(io, dev_statusRef);
-   
-  new privEK: privkey;  (* VM key for TLS *)
+     new dev_statusRef: bitstring;  (* represents ref. cVM launch measurements *)
+     out(io, dev_statusRef);
+       
+     (* Record in the table *)
+     insert agent_keys(ID_S,privAK,pubAK,dev_statusRef)
+  )
+.
+
+(* Mark the event when the keys of a specific machine are leaked
+i.e., not all server machines are compromised at the same time *)
+let LEK(privEK:privkey) =
+  event LeakedEK(pk(privEK));  (* mark the leakage of EK *)
+  out(io, privEK)
+.
+
+let LAK =
+  get agent_keys(ID_S,privAK,pubAK,_) in
+  event LeakedAK(pubAK);  (* mark the leakage of AK *)  
+  out(io, privAK)
+.
+
+let LCA =
+  get ca_store(privCA) in
+  event CompromisedCA(pk(privCA));  (* mark the compromise of the CA *)  
+  out(io, privCA)
+.
+
+(* x509 Certificates, e.g., RFC8555 ACME, SPIFFE/SPIRE etc. *)
+let gen_cert_csr (ID_S:identity,privEK:privkey) =
+  get ca_store(privCA) in
   let pubEK = pk(privEK) in
-  out(io, pubEK);
-    
+  
   let CA_sig = sign(privCA,(ID_S,pubEK)) in   
   let x509_cert = X509(ID_S,pubEK,CA_sig) in  (* Structured X.509 PKI cert *) 
-
-  out(io, x509_cert);
-  insert trust_store(ID_S,pubEK,x509_cert);
-    
-  (* Record in the table *)
-  insert agent_keys(ID_S,privAK,pubAK,privEK,pubEK,dev_statusRef)
-  
-  (* Alternative model: start a new phase and check the properties based on phases: attacker (...) phase n *)
-  (* phase 1; *)
-  (* Comment leakage part *)
-  (* event LeakAK(ID,pubAK,pubEK); *)
-  (* event LeakedAK(pubAK);
-  (* models that AK of a specific (not all) server machine is leaked *)
-  out(io, privAK)  *)
-  ))
+  out(io, x509_cert)
 .
 
 let run_Client(pubCA:pubkey) = 
@@ -98,47 +101,42 @@ let run_Client(pubCA:pubkey) =
 
   (* Choose a server machine (potentially a compromised one) to communicate with. *)
   (! (* this allows the same client to talk to different servers *)
-  (
-  (* ID_S (=hostname/FQDN/SAN) is known to the client, e.g., the desired website it wants to connect. *)
-  get agent_keys(ID_S,_,_,_,_,dev_statusRef) in
-  get agent_keys(_,_,pubAK,_,_,_) in
+     (* ID_S (=hostname/FQDN/SAN) is known to the client, e.g., the desired website it wants to connect. *)
+     get agent_keys(ID_S,_,_,dev_statusRef) in
+     get agent_keys(_,_,pubAK,_) in
 
-  (* Define RP appraisal policy to ensure ID_S selected matches expected TEE measurements - per Section 8.5 of RFC9334 *)
-  let authz_authn = (ID_S, dev_statusRef) in
+     (* Define RP appraisal policy to ensure ID_S selected matches expected TEE measurements - per Section 8.5 of RFC9334 *)
+     let authz_authn = (ID_S, dev_statusRef) in
 
-  (* The following replication models multiple sessions of client with these parameters *)
-  !Client(ID_C,ID_S,pubAK,pubCA,authz_authn)
-  ))
+     (* The following replication models multiple sessions of client with these parameters *)
+     !Client(ID_C,ID_S,pubAK,pubCA,authz_authn)
+  )
 .
 
-let run_Server = 
+let run_Server(pubCA:pubkey) = 
   (* Intuitively, this models a single server and the replication takes care of multiple servers *)
   (* Allow several combinations, but for each private key, choose the corresponding public key *)
-  get agent_keys(_,privAK,pubAK_,_,_,_) in
-  get agent_keys(ID_S,_,_,privEK,pubEK,_) in 
+  get agent_keys(ID_S,_,_,_) in 
+  get agent_keys(_,privAK,pubAK,_) in
+  
+  (* Generate fresh ephemeral keys for every new cVM server instance *)
+  new privEK: privkey;  (* VM key for TLS *)
+  let pubEK = pk(privEK) in
+  out(io, pubEK);
 
-  (* Process drivers (run_Server) must not serve as magic channel for unflagged key compromise - see LEK process *)
-  (* get agent_keys(_,_,_,privEK,pubEK,_) in  *) 
+  !(LEK(privEK)) (* Enable ephemeral key leak oracle *)
 
-  get trust_store(=ID_S,_,x509_cert) in  (* retrieve the cert matching the ID *)
+| !(gen_cert_csr(ID_S,privEK) (* e.g., RFC8555 ACME, SPIFFE/SPIRE, etc. *))
+| !(
+    (* Retrieve the CA-signed cert from previous CSR over adversary controlled io *)
+    in(io, (x509_cert:cert_data)); 
 
-  (* The following replication models multiple sessions of server with these parameters *)
-  !Server(ID_S,privEK,privAK,x509_cert)
-.
+    let X509(=ID_S, =pubEK, ca_sig:bitstring) = x509_cert in (* check x509 data format *)
+    if verify(pubCA, (ID_S, pubEK), ca_sig) = true then (* check CA signature *)
 
-(* Mark the event when the keys of a specific machine are leaked
-i.e., not all server machines are compromised at the same time *)
-let LEK =
-  get agent_keys(_,_,_,privEK,pubEK,_) in 
-  event LeakedEK(pubEK);  (* mark the leakage of EK *)
-  out(io, privEK)
-.
-
-let LAK =
-  get agent_keys(ID_S,privAK,pubAK,privEK,pubEK,_) in
-  event LeakedAK(pubAK);  (* mark the leakage of AK *)  
-  event LeakedAK2(ID_S,pubEK,pubAK,pubEK);  (* mark the leakage of AK with additional parameters *)
-  out(io, privAK)
+    (* The following replication models multiple sessions of server with these parameters *)
+    !(Server(ID_S,privEK,privAK,x509_cert))
+  )
 .
 
 (* set traceDisplay = long. Display full trace *)
@@ -147,12 +145,15 @@ let LAK =
 (* process 0 *)
 process
   (* Web PKI CA *)
-  new privCA:privkey; 
+  new privCA:privkey;
   let pubCA = pk(privCA) in 
   out(io,pubCA);
+  insert ca_store(privCA);
 
-  !(gen_agents_data(privCA))
-  | !(run_Client(pubCA)) | !(run_Server) 
-  | !(LEK)
+  !(gen_agents_data)
+
+  | !(run_Client(pubCA)) | !(run_Server(pubCA))
+  (* | !(LCA) *)
   | !(LAK)
+  (* | !(LEK) process moved inline with run_Server *)
   | !(SendBadElement)

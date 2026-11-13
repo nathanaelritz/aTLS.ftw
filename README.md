@@ -4,6 +4,8 @@
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
+<div align="left">
+
 ## Acknowledgements
 
 This work is a unique adaptation and extension incorporating input from the following prior art:
