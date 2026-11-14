@@ -1014,6 +1014,9 @@ let Server(ID_S:identity, privEK: privkey, privAK: privkey, x509_cert:cert_data)
   event PreServerComp(ID_S,pubEK,psk,offer,mode,kc,ks,ems,cr,sr,pubEK,dev_status1);
 
   event ServerEmittedEvKc(quote, kc);
+  event ServerStateEvKc(quote,kc);
+  event ServerStateEvKch(quote,kch);
+  event ServerStateEv(quote,gxy);
   out(io,FIN(m1));  (* Send serverFinished message *)
 
   (* clientFinished message *)
@@ -1021,9 +1024,6 @@ let Server(ID_S:identity, privEK: privkey, privAK: privkey, x509_cert:cert_data)
   if m2 = hmac(StrongHash,kcm,log_SFIN) then  (* kcm represents kcm; check mac of finished from client *)
     let log_CFIN = (log_SFIN,FIN(m2)) in  (* received ClientHello || sent ServerHello || sent Certificate || sent CertificateVerify || sent ServerFinished || received ClientFinished *)
     let rms =  kdf_psk(ms,log_CFIN) in
-  event ServerStateEvKc(quote,kc);
-  event ServerStateEvKch(quote,kch);
-  event ServerStateEv(quote,gxy);
   event ServerFinished(cr,sr,psk,pubEK,offer,mode,kc,ks,ems,rms);
   event ServerComp(ID_S,pubEK,psk,offer,mode,kc,ks,ems,cr,sr,pubEK,dev_status1)
   (* insert serverSession(cr,sr,psk,offer,mode,kc,ks,ems,rms);  kc and ks are passed to appData via this table *)

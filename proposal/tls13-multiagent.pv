@@ -85,13 +85,12 @@ let LCA =
 .
 
 (* x509 Certificates, e.g., RFC8555 ACME, SPIFFE/SPIRE etc. *)
-let gen_cert_csr (ID_S:identity,privEK:privkey) =
+let gen_cert_csr (ID_S:identity,pubEK:pubkey) = (* ID_S and pubEK are already known Dolev-Yao attacker *)
   get ca_store(privCA) in
-  let pubEK = pk(privEK) in
   
   let CA_sig = sign(privCA,(ID_S,pubEK)) in   
   let x509_cert = X509(ID_S,pubEK,CA_sig) in  (* Structured X.509 PKI cert *) 
-  out(io, x509_cert)
+  out(io, x509_cert) (* x509_cert is public and known to adversary *)
 .
 
 let run_Client(pubCA:pubkey) = 
@@ -126,7 +125,7 @@ let run_Server(pubCA:pubkey) =
 
   !(LEK(privEK)) (* Enable ephemeral key leak oracle *)
 
-| !(gen_cert_csr(ID_S,privEK) (* e.g., RFC8555 ACME, SPIFFE/SPIRE, etc. *))
+| !(gen_cert_csr(ID_S,pubEK) (* e.g., RFC8555 ACME, SPIFFE/SPIRE, etc. *))
 | !(
     (* Retrieve the CA-signed cert from previous CSR over adversary controlled io *)
     in(io, (x509_cert:cert_data)); 
